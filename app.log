@@ -1,0 +1,14 @@
+[] 2023/06/23 09:29:59 Log initialized successfully
+[] 2023/06/23 09:32:03 Log initialized successfully
+[] 2023/06/23 09:41:11 Log initialized successfully
+[] 2023/06/23 09:41:39 Log initialized successfully
+[] 2023/06/23 09:41:39 Log initialized successfully2
+[ ]2023/06/23 09:46:53 Log initialized successfully
+[&{{{localhost %!s(int=3306) master_user master_password} [{slave1_host %!s(int=3306) slave1_user slave1_password} {slave2_host %!s(int=3306) slave2_user slave2_password}]} } ]2023/06/23 09:47:26 Log initialized successfully
+[ ]2023/06/23 09:48:19 Log initialized successfully
+[ ]2023/06/23 09:49:33 Log initialized successfully
+[url_shortening ]2023/06/23 09:52:46 Log initialized successfully
+[url_shortening]2023/06/23 10:06:04 gRPC method: /url.UrlShorteningService/CreateUrl, request: 
+[url_shortening]2023/06/23 10:06:04 xxxxx
+[url_shortening]2023/06/23 10:06:04 yyyyy
+[url_shortening]2023/06/23 10:06:04 gRPC method: /url.UrlShorteningService/CreateUrl, response: short_url:"http://www.google.com"
