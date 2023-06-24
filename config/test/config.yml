@@ -1,4 +1,6 @@
 servicename: url_shortening
+server:
+  port: 50051
 database:
   master:
     host: localhost
@@ -17,3 +19,13 @@ database:
       username: slave2_user
       password: slave2_password
       databasename: slave2_db
+redis:
+  - host: localhost1
+    port: 6379
+    password: password1
+  - host: localhost2
+    port: 6379
+    password: password2
+  - host: localhost3
+    port: 6379
+    password: password3

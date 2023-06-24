@@ -1,6 +1,7 @@
 package infra
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"url_shortening/config"
@@ -58,11 +59,40 @@ func InitDB() error {
 	return nil
 }
 
-func GetMasterDB() *gorm.DB {
-	return masterDb
+func CloseDB() error {
+	// Close the master database
+	master, err := masterDb.DB()
+	if err != nil {
+		GetLogger().Fatalf("Failed to get master database connection pool: %v", err)
+	}
+
+	err = master.Close()
+	if err != nil {
+		GetLogger().Fatalf("Failed to close master database connection: %v", err)
+	}
+
+	// Close the slave databases
+	for _, db := range slaveDbs {
+		slave, err := db.DB()
+		if err != nil {
+			GetLogger().Fatalf("Failed to get slave database connection pool: %v", err)
+		}
+		err = slave.Close()
+		if err != nil {
+			GetLogger().Fatalf("Failed to close slave database connection: %v", err)
+		}
+	}
+
+	GetLogger().Println("Database connection closed")
+
+	return nil
 }
 
-func GetSlaveDB() *gorm.DB {
+func MasterSession(ctx context.Context) *gorm.DB {
+	return masterDb.WithContext(ctx)
+}
+
+func SlaveSession(ctx context.Context) *gorm.DB {
 	if len(slaveDbs) == 0 {
 		GetLogger().Fatal("No slave databases available")
 		return nil
@@ -71,5 +101,11 @@ func GetSlaveDB() *gorm.DB {
 	// Generate a random index to select a slave database
 	index := rand.Intn(len(slaveDbs))
 
-	return slaveDbs[index]
+	return slaveDbs[index].WithContext(ctx)
+}
+
+func DBTransaction(ctx context.Context, f func(tx *gorm.DB) error) error {
+	return MasterSession(ctx).Transaction(func(tx *gorm.DB) error {
+		return f(tx)
+	})
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"log"
 	"net"
 	"url_shortening/config"
@@ -13,50 +13,49 @@ import (
 )
 
 func main() {
-	err := config.LoadConfig()
-	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
-	}
-
-	err = infra.InitLog()
+	// Initialize the logger
+	err := infra.InitLog()
 	if err != nil {
 		log.Fatalf("failed to initialize log: %v", err)
 	}
+	infra.GetLogger().Printf("log initialized")
 
-	// Create a TCP listener on port 50051
-	lis, err := net.Listen("tcp", ":50051")
+	// Initialize the config
+	err = config.LoadConfig()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+	infra.GetLogger().Printf("config loaded, config: %+v", config.GetConfig())
+
+	// Initialize the DB
+	err = infra.InitDB()
+	if err != nil {
+		log.Fatalf("failed to initialize DB: %v", err)
+	}
+	defer infra.CloseDB()
+	infra.GetLogger().Printf("DB initialized")
+
+	// Initialize the Redis
+	err = infra.InitRedis()
+	if err != nil {
+		log.Fatalf("failed to initialize Redis: %v", err)
+	}
+	defer infra.CloseRedis()
+	infra.GetLogger().Printf("Redis initialized")
+
+	// Initialize the gRPC server
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", config.GetConfig().Server.Port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
 	serverOptions := []grpc.ServerOption{
-		grpc.ChainUnaryInterceptor(loggingInterceptor),
+		grpc.ChainUnaryInterceptor(infra.LoggingInterceptor),
 	}
-	// Create a new gRPC server
 	server := grpc.NewServer(serverOptions...)
 
-	// Register the UserService server with the gRPC server
 	pb.RegisterUrlShorteningServiceServer(server, service.NewUserServiceServer())
-	// Start the gRPC server and listen for incoming requests
 	if err := server.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
-}
-
-func loggingInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,
-) (resp interface{}, err error) {
-	// Log the incoming request
-	infra.GetLogger().Printf("gRPC method: %s, request: %+v", info.FullMethod, req)
-
-	// Call the gRPC handler to process the request
-	resp, err = handler(ctx, req)
-
-	// Log the outgoing response
-	infra.GetLogger().Printf("gRPC method: %s, response: %+v", info.FullMethod, resp)
-
-	return resp, err
 }

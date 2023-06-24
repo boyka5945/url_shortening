@@ -16,12 +16,24 @@ type DatabaseConfig struct {
 	DatabaseName string `mapstructure:"databasename"`
 }
 
+type RedisConfig struct {
+	Host string `mapstructure:"host"`
+	Port int `mapstructure:"port"`
+	Password string `mapstructure:"password"`
+}
+
+type ServerConfig struct {
+	Port int `mapstructure:"port"`
+}
+
 type Config struct {
 	Database struct {
 		Master DatabaseConfig   `mapstructure:"master"`
 		Slaves []DatabaseConfig `mapstructure:"slaves"`
 	}
 	ServiceName string `mapstructure:"servicename"`
+	Server ServerConfig `mapstructure:"server"` 
+	Redis []RedisConfig `mapstructure:"redis"`
 }
 
 func GetConfig() *Config {

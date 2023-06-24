@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"url_shortening/config"
 )
 
 var (
@@ -23,6 +22,6 @@ func InitLog() error {
 	}
 
 	// Create a logger instance
-	logger = log.New(file, fmt.Sprintf("[%s]", config.GetConfig().ServiceName), log.Ldate|log.Ltime)
+	logger = log.New(file, "", log.Ldate|log.Ltime)
 	return nil
 }
