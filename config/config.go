@@ -23,6 +23,12 @@ type RedisConfig struct {
 }
 
 type ServerConfig struct {
+	Host string `mapstructure:"host"`
+	Port int `mapstructure:"port"`
+}
+
+type Etcd struct {
+	Host string `mapstructure:"host"`
 	Port int `mapstructure:"port"`
 }
 
@@ -31,9 +37,9 @@ type Config struct {
 		Master DatabaseConfig   `mapstructure:"master"`
 		Slaves []DatabaseConfig `mapstructure:"slaves"`
 	}
-	ServiceName string `mapstructure:"servicename"`
 	Server ServerConfig `mapstructure:"server"` 
 	Redis []RedisConfig `mapstructure:"redis"`
+	Etcd []Etcd `mapstructure:"etcd"`
 }
 
 func GetConfig() *Config {

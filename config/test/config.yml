@@ -1,5 +1,5 @@
-servicename: url_shortening
 server:
+  host: 127.0.0.1
   port: 50051
 database:
   master:
@@ -29,3 +29,10 @@ redis:
   - host: localhost3
     port: 6379
     password: password3
+etcd:
+  - host: 127.0.0.1
+    port: 2379
+  - host: 127.0.0.1
+    port: 2379
+  - host: 127.0.0.1
+    port: 2379
