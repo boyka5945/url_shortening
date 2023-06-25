@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"url_shortening/config"
 
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 type ServiceRegistrar struct {
@@ -19,26 +18,22 @@ type ServiceRegistrar struct {
 	leaseKeepCh  <-chan *clientv3.LeaseKeepAliveResponse
 }
 
-func NewServiceRegistrar(serviceName, serviceAddr string, methodPaths []string, leaseTimeout time.Duration) (*ServiceRegistrar, error) {
-	var etcdEndpoints []string
-	for _, v := range config.GetConfig().Etcd {
-		etcdEndpoints = append(etcdEndpoints, fmt.Sprintf("%s:%d", v.Host, v.Port))
-	}
-
+func NewServiceRegistrar(ctx context.Context, etcdEndpoints []string, serviceName, serviceAddr string, methodPaths []string, leaseTimeout time.Duration) (*ServiceRegistrar, error) {
 	etcdClient, err := clientv3.New(clientv3.Config{
 		Endpoints: etcdEndpoints,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to etcd: %v", err)
 	}
-
-	resp, err := etcdClient.Grant(context.Background(), int64(leaseTimeout.Seconds()))
+	newCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	resp, err := etcdClient.Grant(newCtx, int64(leaseTimeout.Seconds()))
 	if err != nil {
 		etcdClient.Close()
 		return nil, fmt.Errorf("failed to create lease in etcd: %v", err)
 	}
 
-	keepAliveCh, err := etcdClient.KeepAlive(context.Background(), resp.ID)
+	keepAliveCh, err := etcdClient.KeepAlive(ctx, resp.ID)
 	if err != nil {
 		etcdClient.Close()
 		return nil, fmt.Errorf("failed to start lease keep-alive: %v", err)
@@ -61,7 +56,7 @@ func (r *ServiceRegistrar) RegisterService() error {
 	for _, methodPath := range r.methodPaths {
 		key := fmt.Sprintf("/service/%s/%s", r.serviceName, methodPath)
 		value := r.serviceAddr
-	
+
 		_, err := r.etcdClient.Put(context.Background(), key, value, clientv3.WithLease(r.leaseID))
 		if err != nil {
 			return fmt.Errorf("failed to register service in etcd: %v", err)
@@ -91,4 +86,8 @@ func (r *ServiceRegistrar) DeleteInactiveServices() error {
 	}
 
 	return nil
+}
+
+func (r *ServiceRegistrar) ComsumeLeaseKeepCh() {
+	for range r.leaseKeepCh {}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -44,13 +45,17 @@ func main() {
 	// }
 	// defer infra.CloseRedis()
 	// infra.GetLogger().Printf("Redis initialized")
-	
+
 	// Register service in etcd
 	var methodPaths []string
 	for _, method := range pb.UrlShorteningService_ServiceDesc.Methods {
 		methodPaths = append(methodPaths, method.MethodName)
 	}
-	serviceRegistrar, err := infra.NewServiceRegistrar(pb.UrlShorteningService_ServiceDesc.ServiceName, fmt.Sprintf("%s:%d", config.GetConfig().Server.Host, config.GetConfig().Server.Port), methodPaths, 10 * time.Second)
+	var etcdEndpoints []string
+	for _, v := range config.GetConfig().Etcd {
+		etcdEndpoints = append(etcdEndpoints, fmt.Sprintf("%s:%d", v.Host, v.Port))
+	}
+	serviceRegistrar, err := infra.NewServiceRegistrar(context.Background(), etcdEndpoints, pb.UrlShorteningService_ServiceDesc.ServiceName, fmt.Sprintf("%s:%d", config.GetConfig().Server.Host, config.GetConfig().Server.Port), methodPaths, 10*time.Second)
 	if err != nil {
 		infra.GetLogger().Fatalf("failed to initialize service registrar: %v", err)
 	}
@@ -71,6 +76,10 @@ func main() {
 				log.Printf("Failed to delete inactive services: %v", err)
 			}
 		}
+	}()
+
+	go func () {
+		serviceRegistrar.ComsumeLeaseKeepCh()
 	}()
 
 	// Initialize the gRPC server
